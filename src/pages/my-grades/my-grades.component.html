@@ -1,0 +1,154 @@
+<div class="space-y-8">
+  <div>
+    <h3 class="text-3xl font-bold text-gray-800">My Grades</h3>
+    <p class="text-gray-500 mt-1">An overview of your academic performance.</p>
+  </div>
+  
+  <!-- Stats Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="bg-white rounded-lg p-6 shadow-sm">
+      <p class="text-sm font-medium text-gray-500 uppercase">Overall GPA</p>
+      <p class="text-3xl font-bold text-gray-800">{{ overallGPA() | number:'1.2-2' }}</p>
+    </div>
+    <div class="bg-white rounded-lg p-6 shadow-sm">
+      <p class="text-sm font-medium text-gray-500 uppercase">Total Credits Earned</p>
+      <p class="text-3xl font-bold text-gray-800">{{ totalCredits() }}</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Grades Table -->
+    <div class="lg:col-span-2 bg-white rounded-lg p-6 shadow-sm">
+       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+        <h4 class="font-semibold text-gray-800 text-lg">Course Grades</h4>
+        <div class="flex space-x-2 mt-2 sm:mt-0">
+          @for (semester of semesters(); track semester) {
+            <button 
+              (click)="filterBySemester(semester)"
+              class="px-3 py-1 text-sm font-medium rounded-md transition-colors focus:outline-none"
+              [class.bg-blue-600]="selectedSemester() === semester"
+              [class.text-white]="selectedSemester() === semester"
+              [class.bg-gray-200]="selectedSemester() !== semester"
+              [class.text-gray-700]="selectedSemester() !== semester"
+              [class.hover:bg-gray-300]="selectedSemester() !== semester">
+              {{ semester }}
+            </button>
+          }
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course Code</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course Name</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Credits</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Semester</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            @for (grade of filteredGrades(); track grade.courseCode) {
+              <tr>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ grade.courseCode }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ grade.courseName }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ grade.credits }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-800">{{ grade.grade }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ grade.semester }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="5" class="px-6 py-4 text-center text-gray-500">No grades found for this semester.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- Right Column for Charts -->
+    <div class="space-y-8">
+      <!-- GPA Trend Chart -->
+      <div class="bg-white rounded-lg p-6 shadow-sm">
+        <h4 class="font-semibold text-gray-800 text-lg">GPA Trend</h4>
+        @if (gpaChartPoints().length > 1) {
+          <div class="mt-4 h-56 rounded-md relative">
+            <svg class="w-full h-full" viewBox="0 0 500 200" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="gpaGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stop-color="#0f62fe" stop-opacity="0.4"/>
+                  <stop offset="95%" stop-color="#0f62fe" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <!-- Grid Lines & Y-axis Labels -->
+              @for (line of gpaGridLines(); track line.gpa) {
+                <line x1="30" [attr.y1]="line.y" x2="490" [attr.y2]="line.y" stroke="#e5e7eb" stroke-width="0.5" />
+                <text [attr.x]="25" [attr.y]="line.y + 3" text-anchor="end" font-size="10" fill="#9ca3af">{{ line.gpa.toFixed(1) }}</text>
+              }
+              <path [attr.d]="gpaAreaPath()" fill="url(#gpaGradient)" />
+              <path [attr.d]="gpaLinePath()" fill="none" stroke="#0f62fe" stroke-width="2" />
+              <!-- Points & Tooltips -->
+              @for (point of gpaChartPoints(); track $index) {
+                <g class="group">
+                  <circle [attr.cx]="point.x" [attr.cy]="point.y" r="4" fill="#0f62fe" class="cursor-pointer" />
+                  <circle [attr.cx]="point.x" [attr.cy]="point.y" r="8" fill="#0f62fe" class="opacity-0 group-hover:opacity-20 transition-opacity" />
+                  <g [attr.transform]="'translate(' + (point.x - 20) + ', ' + (point.y - 35) + ')'" class="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                    <rect width="40" height="20" rx="4" fill="#1f2937"/>
+                    <text x="20" y="14" font-size="10" font-weight="bold" fill="white" text-anchor="middle">{{ point.value.toFixed(2) }}</text>
+                  </g>
+                </g>
+                <!-- X-axis Labels -->
+                 <text [attr.x]="point.x" y="185" text-anchor="middle" font-size="10" fill="#9ca3af">{{ point.label.replace(' 20', "'") }}</text>
+              }
+            </svg>
+          </div>
+        } @else {
+           <div class="mt-4 h-56 flex items-center justify-center text-sm text-gray-500">
+            Not enough data for a trend chart.
+           </div>
+        }
+      </div>
+
+      <!-- Grade Distribution -->
+      <div class="bg-white rounded-lg p-6 shadow-sm">
+          <h4 class="font-semibold text-gray-800 text-lg mb-4">Grade Distribution</h4>
+          <div class="flex justify-center items-center my-6">
+              <svg width="150" height="150" viewBox="0 0 36 36" class="transform -rotate-90">
+                @for (item of gradeDistribution(); track item.grade) {
+                  <circle
+                    class="fill-transparent stroke-2"
+                    [class.stroke-green-500]="item.grade === 'A'"
+                    [class.stroke-blue-500]="item.grade === 'B'"
+                    [class.stroke-yellow-500]="item.grade === 'C'"
+                    [class.stroke-orange-500]="item.grade === 'D'"
+                    [class.stroke-red-500]="item.grade === 'F'"
+                    cx="18"
+                    cy="18"
+                    r="15.9155"
+                    [attr.stroke-dasharray]="item.percentage + ' ' + (100 - item.percentage)"
+                    [attr.stroke-dashoffset]="-item.offset"
+                  ></circle>
+                }
+              </svg>
+          </div>
+          <ul class="space-y-2 text-sm">
+            @for (item of gradeDistribution(); track item.grade) {
+              <li class="flex items-center justify-between">
+                <div class="flex items-center">
+                  <span class="w-3 h-3 rounded-full mr-2"
+                    [class.bg-green-500]="item.grade === 'A'"
+                    [class.bg-blue-500]="item.grade === 'B'"
+                    [class.bg-yellow-500]="item.grade === 'C'"
+                    [class.bg-orange-500]="item.grade === 'D'"
+                    [class.bg-red-500]="item.grade === 'F'">
+                  </span>
+                  <span class="text-gray-700">Grade {{ item.grade }}</span>
+                </div>
+                <span class="font-medium text-gray-800">{{ item.count }} Courses ({{ item.percentage | number:'1.0-0' }}%)</span>
+              </li>
+            }
+          </ul>
+      </div>
+    </div>
+  </div>
+</div>

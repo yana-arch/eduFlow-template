@@ -1,0 +1,98 @@
+<div>
+  <h3 class="text-3xl font-bold text-gray-800">Class Dashboard</h3>
+
+  <div class="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Left Column: Schedule -->
+    <div class="lg:col-span-2">
+      <div class="bg-white p-6 rounded-lg shadow-sm">
+        <h4 class="text-xl font-semibold text-gray-800">Today's Schedule</h4>
+        <div class="mt-4 flow-root">
+          <ul class="-mb-8">
+            @for(item of schedule(); track item.course; let isLast = $last) {
+              <li>
+                <div class="relative pb-8">
+                  @if(!isLast) {
+                    <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
+                  }
+                  <div class="relative flex space-x-3">
+                    <div>
+                      <span class="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center ring-8 ring-white">
+                        <svg class="h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                      </span>
+                    </div>
+                    <div class="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
+                      <div>
+                        <p class="text-sm text-gray-500">{{ item.time }}</p>
+                        <p class="font-medium text-gray-900">{{ item.course }}</p>
+                      </div>
+                      <div class="text-right text-sm whitespace-nowrap text-gray-500">
+                        <p>{{ item.room }}</p>
+                        <p>{{ item.students }} Students</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            }
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: My Classes & Quick Attendance -->
+    <div class="space-y-8">
+      <div class="bg-white p-6 rounded-lg shadow-sm">
+        <h4 class="text-xl font-semibold text-gray-800">My Classes</h4>
+        <div class="mt-4 space-y-4">
+          @for(cls of myClasses(); track cls.name) {
+            <div class="p-4 rounded-lg border border-gray-200">
+              <div class="flex items-start space-x-4">
+                <div class="p-3 rounded-full" [class.bg-blue-100]="cls.color === 'blue'" [class.bg-purple-100]="cls.color === 'purple'">
+                  <svg class="w-6 h-6" [class.text-blue-500]="cls.color === 'blue'" [class.text-purple-500]="cls.color === 'purple'" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" [innerHTML]="getSubjectIcon(cls.subjectIcon)"></svg>
+                </div>
+                <div>
+                  <p class="font-semibold text-gray-800">{{ cls.name }}</p>
+                  <div class="flex space-x-4 text-sm text-gray-500 mt-1">
+                    <span>{{ cls.students }} Students</span>
+                    <span>{{ cls.room }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-4">
+                <div class="flex justify-between text-sm font-medium text-gray-600">
+                  <span>Progress</span>
+                  <span>{{ cls.progress }}%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
+                  <div class="h-2 rounded-full" [style.width]="cls.progress + '%'" [class.bg-blue-600]="cls.color === 'blue'" [class.bg-purple-600]="cls.color === 'purple'"></div>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="bg-white p-6 rounded-lg shadow-sm">
+        <h4 class="text-xl font-semibold text-gray-800">Quick Attendance</h4>
+        <div class="mt-4 space-y-4">
+          @for(student of attendance(); track student.id) {
+            <div class="flex items-center justify-between">
+              <span class="text-gray-700">{{ student.name }}</span>
+              <div class="flex items-center space-x-2">
+                <span class="text-sm" [class.text-gray-400]="student.present" [class.text-red-500]="!student.present">Absent</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" [checked]="student.present" (change)="updateAttendance(student.id, $event)" class="sr-only peer">
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+                <span class="text-sm" [class.text-green-500]="student.present" [class.text-gray-400]="!student.present">Present</span>
+              </div>
+            </div>
+          }
+        </div>
+        <button class="w-full mt-6 bg-[#0f62fe] text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 transition duration-300">
+          Submit Attendance
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

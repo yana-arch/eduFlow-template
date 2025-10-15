@@ -1,0 +1,580 @@
+<div class="space-y-8">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+    <div>
+      @if(mode() === 'admin') {
+        <h3 class="text-3xl font-bold text-gray-800">Warehouse Management</h3>
+        <p class="text-gray-500 mt-1">Manage and track all institutional inventory.</p>
+      } @else {
+        <h3 class="text-3xl font-bold text-gray-800">Inventory Overview</h3>
+        <p class="text-gray-500 mt-1">Check the availability of institutional supplies and equipment.</p>
+      }
+    </div>
+    @if(mode() === 'admin') {
+      <div class="flex space-x-2 mt-4 sm:mt-0">
+        <button (click)="openTransactionModal()" class="bg-white text-gray-700 font-bold py-2 px-4 rounded-lg shadow-md hover:bg-gray-200 border border-gray-300 transition duration-300 flex items-center space-x-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+          <span>Create Transaction</span>
+        </button>
+        <button (click)="openItemModal()" class="bg-[#0f62fe] text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 transition duration-300 flex items-center space-x-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+          </svg>
+          <span>Add New Item</span>
+        </button>
+      </div>
+    }
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+    @if(mode() === 'admin') {
+      <div class="bg-white rounded-lg p-6 shadow-sm">
+        <p class="text-sm font-medium text-gray-500 uppercase">Total Inventory Value</p>
+        <p class="text-3xl font-bold text-gray-800">{{ totalValue() | currency:'USD':'symbol':'1.2-2' }}</p>
+      </div>
+    }
+    <div class="bg-white rounded-lg p-6 shadow-sm">
+      <p class="text-sm font-medium text-gray-500 uppercase">Total Items</p>
+      <p class="text-3xl font-bold text-gray-800">{{ totalItems() | number }}</p>
+    </div>
+    <div class="bg-white rounded-lg p-6 shadow-sm">
+      <p class="text-sm font-medium text-gray-500 uppercase">Items with Low Stock</p>
+      <p class="text-3xl font-bold text-gray-800">{{ lowStockItemsCount() }}</p>
+    </div>
+  </div>
+
+  <!-- Transaction Chart (Admin Only) -->
+  @if(mode() === 'admin') {
+    <div class="bg-white rounded-lg p-6 shadow-sm">
+      <h4 class="font-semibold text-gray-800 text-lg">Monthly Transaction Volume</h4>
+      <p class="text-sm text-gray-500">Total items imported vs. exported (approved transactions only).</p>
+      @let chartData = transactionChartData();
+      @if(chartData.labels.length > 0) {
+        <div class="mt-4 h-64 rounded-md flex justify-around items-end p-4 space-x-4 border-t pt-4">
+          @for (label of chartData.labels; track $index) {
+            <div class="w-full flex-1 flex flex-col items-center justify-end group h-full">
+              <div class="flex items-end w-full justify-center space-x-1 h-full">
+                <div class="w-1/2 bg-blue-300 hover:bg-blue-500 transition-colors rounded-t-md relative group/bar">
+                  <div class="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover/bar:opacity-100 bg-gray-800 text-white text-xs rounded py-1 px-2 z-10">
+                    {{ chartData.importData[$index] }}
+                  </div>
+                  <div class="bg-blue-300 hover:bg-blue-500 transition-colors rounded-t-md w-full" [style.height]="(chartData.importData[$index] / chartData.maxVal * 100) + '%'"></div>
+                </div>
+                <div class="w-1/2 bg-green-300 hover:bg-green-500 transition-colors rounded-t-md relative group/bar">
+                  <div class="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover/bar:opacity-100 bg-gray-800 text-white text-xs rounded py-1 px-2 z-10">
+                    {{ chartData.exportData[$index] }}
+                  </div>
+                  <div class="bg-green-300 hover:bg-green-500 transition-colors rounded-t-md w-full" [style.height]="(chartData.exportData[$index] / chartData.maxVal * 100) + '%'"></div>
+                </div>
+              </div>
+              <span class="text-xs text-gray-500 mt-2 font-medium">{{ label }}</span>
+            </div>
+          }
+        </div>
+        <div class="flex justify-center items-center space-x-4 mt-4 text-sm">
+          <div class="flex items-center"><span class="w-3 h-3 bg-blue-300 rounded-sm mr-2"></span> Imports</div>
+          <div class="flex items-center"><span class="w-3 h-3 bg-green-300 rounded-sm mr-2"></span> Exports</div>
+        </div>
+      } @else {
+        <div class="mt-4 h-64 flex justify-center items-center text-gray-500">
+          No approved transaction data to display.
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Tabs (Admin Only) -->
+  @if(mode() === 'admin') {
+    <div class="border-b border-gray-200">
+      <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+        <button (click)="setTab('inventory')" 
+          [class.border-blue-500]="activeTab() === 'inventory'" [class.text-blue-600]="activeTab() === 'inventory'"
+          [class.border-transparent]="activeTab() !== 'inventory'" [class.text-gray-500]="activeTab() !== 'inventory'"
+          class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+          Inventory
+        </button>
+        <button (click)="setTab('transactions')" 
+          [class.border-blue-500]="activeTab() === 'transactions'" [class.text-blue-600]="activeTab() === 'transactions'"
+          [class.border-transparent]="activeTab() !== 'transactions'" [class.text-gray-500]="activeTab() !== 'transactions'"
+          class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+          Transaction History
+        </button>
+      </nav>
+    </div>
+  }
+
+  <!-- Main Content Area -->
+  @if(mode() === 'admin') {
+    @switch (activeTab()) {
+      @case ('inventory') {
+        <div class="bg-white rounded-lg p-6 shadow-sm">
+          <div class="flex flex-col sm:flex-row justify-between items-center mb-4 space-y-2 sm:space-y-0">
+            <h4 class="font-semibold text-gray-800 text-lg">Inventory List</h4>
+            <div class="flex items-center space-x-2">
+                <select (change)="onCategoryFilterChange($event)" class="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                    @for (category of itemCategories(); track category) {
+                        <option [value]="category">{{ category === 'all' ? 'All Categories' : category }}</option>
+                    }
+                </select>
+                <input (input)="onSearch($event)" type="text" placeholder="Search items..." class="w-full sm:w-64 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                     <button (click)="sortInventoryBy('name')" class="flex items-center space-x-1 group">
+                        <span>Item Name</span>
+                        @if(inventorySortColumn() === 'name') {
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform" [class.rotate-180]="inventorySortDirection() === 'desc'" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                        }
+                    </button>
+                  </th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                     <button (click)="sortInventoryBy('category')" class="flex items-center space-x-1 group">
+                        <span>Category</span>
+                        @if(inventorySortColumn() === 'category') {
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform" [class.rotate-180]="inventorySortDirection() === 'desc'" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                        }
+                    </button>
+                  </th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                     <button (click)="sortInventoryBy('quantity')" class="flex items-center space-x-1 group">
+                        <span>Quantity</span>
+                        @if(inventorySortColumn() === 'quantity') {
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform" [class.rotate-180]="inventorySortDirection() === 'desc'" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                        }
+                    </button>
+                  </th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                     <button (click)="sortInventoryBy('price')" class="flex items-center space-x-1 group">
+                        <span>Price</span>
+                        @if(inventorySortColumn() === 'price') {
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform" [class.rotate-180]="inventorySortDirection() === 'desc'" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                        }
+                    </button>
+                  </th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                     <button (click)="sortInventoryBy('status')" class="flex items-center space-x-1 group">
+                        <span>Status</span>
+                        @if(inventorySortColumn() === 'status') {
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform" [class.rotate-180]="inventorySortDirection() === 'desc'" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                        }
+                    </button>
+                  </th>
+                  <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                @for(item of displayItems(); track item.id) {
+                  <tr class="hover:bg-gray-50 cursor-pointer" (click)="openItemModal(item)">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ item.name }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item.sku }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item.category }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item.quantity }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item.price | currency }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                      @let status = getItemStatus()(item);
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                        [class.bg-green-100]="status.color === 'green'" [class.text-green-800]="status.color === 'green'"
+                        [class.bg-yellow-100]="status.color === 'yellow'" [class.text-yellow-800]="status.color === 'yellow'"
+                        [class.bg-red-100]="status.color === 'red'" [class.text-red-800]="status.color === 'red'">
+                         <svg class="mr-1.5 h-2 w-2" [class.text-green-400]="status.color === 'green'" [class.text-yellow-400]="status.color === 'yellow'" [class.text-red-400]="status.color === 'red'" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" /></svg>
+                        {{ status.text }}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                       <button (click)="deleteItem(item.id, $event)" class="text-red-600 hover:text-red-900 ml-4">
+                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" />
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="7" class="px-6 py-4 text-center text-gray-500">No items found.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <!-- Inventory Pagination -->
+          @if (inventoryTotalPages() > 1) {
+            <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+                <div class="flex flex-1 justify-between sm:hidden">
+                    <button (click)="setInventoryPage(inventoryCurrentPage() - 1)" [disabled]="inventoryCurrentPage() === 1" class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">Previous</button>
+                    <button (click)="setInventoryPage(inventoryCurrentPage() + 1)" [disabled]="inventoryCurrentPage() === inventoryTotalPages()" class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">Next</button>
+                </div>
+                <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-sm text-gray-700">
+                            Showing
+                            <span class="font-medium">{{ (inventoryCurrentPage() - 1) * inventoryItemsPerPage() + 1 }}</span>
+                            to
+                            <span class="font-medium">{{ ((inventoryCurrentPage() - 1) * inventoryItemsPerPage()) + displayItems().length }}</span>
+                            of
+                            <span class="font-medium">{{ items().length }}</span>
+                            results
+                        </p>
+                    </div>
+                    <div>
+                        <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                            <button (click)="setInventoryPage(inventoryCurrentPage() - 1)" [disabled]="inventoryCurrentPage() === 1" class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50">
+                                <span class="sr-only">Previous</span>
+                                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" /></svg>
+                            </button>
+                            @for(page of [].constructor(inventoryTotalPages()); track $index) {
+                                <button (click)="setInventoryPage($index + 1)" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold" [class.bg-blue-600]="inventoryCurrentPage() === $index + 1" [class.text-white]="inventoryCurrentPage() === $index + 1" [class.text-gray-900]="inventoryCurrentPage() !== $index + 1" [class.ring-1]="inventoryCurrentPage() !== $index + 1" [class.ring-inset]="inventoryCurrentPage() !== $index + 1" [class.ring-gray-300]="inventoryCurrentPage() !== $index + 1" [class.hover:bg-gray-50]="inventoryCurrentPage() !== $index + 1">
+                                    {{ $index + 1 }}
+                                </button>
+                            }
+                            <button (click)="setInventoryPage(inventoryCurrentPage() + 1)" [disabled]="inventoryCurrentPage() === inventoryTotalPages()" class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50">
+                                <span class="sr-only">Next</span>
+                                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" /></svg>
+                            </button>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+          }
+        </div>
+      }
+      @case ('transactions') {
+        <div class="bg-white rounded-lg p-6 shadow-sm">
+          <div class="flex flex-col sm:flex-row justify-between items-center mb-4 space-y-2 sm:space-y-0">
+            <h4 class="font-semibold text-gray-800 text-lg">Transaction History</h4>
+            <select (change)="onStatusFilterChange($event)" class="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+              @for (status of transactionStatuses(); track status) {
+                <option [value]="status">{{ status === 'all' ? 'All Statuses' : status }}</option>
+              }
+            </select>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                     <button (click)="sortTransactionsBy('id')" class="flex items-center space-x-1 group">
+                        <span>ID & Type</span>
+                        @if(transactionSortColumn() === 'id') {
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform" [class.rotate-180]="transactionSortDirection() === 'desc'" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                        }
+                    </button>
+                  </th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                     <button (click)="sortTransactionsBy('date')" class="flex items-center space-x-1 group">
+                        <span>Date</span>
+                        @if(transactionSortColumn() === 'date') {
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform" [class.rotate-180]="transactionSortDirection() === 'desc'" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                        }
+                    </button>
+                  </th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                     <button (click)="sortTransactionsBy('status')" class="flex items-center space-x-1 group">
+                        <span>Status</span>
+                        @if(transactionSortColumn() === 'status') {
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform" [class.rotate-180]="transactionSortDirection() === 'desc'" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                        }
+                    </button>
+                  </th>
+                  <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                @for (transaction of displayTransactions(); track transaction.id) {
+                  <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                      <div class="font-medium text-gray-900">#{{ transaction.id }}</div>
+                      <div [class.text-green-600]="transaction.type === 'Import'" [class.text-blue-600]="transaction.type === 'Export'">{{ transaction.type }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <ul class="list-disc list-inside">
+                        @for(item of transaction.items; track item.itemId) {
+                          <li>{{ item.quantity }}x {{ item.itemName }}</li>
+                        }
+                      </ul>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ transaction.date | date:'mediumDate' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ transaction.user }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                       <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                        [class.bg-green-100]="transaction.status === 'Approved'" [class.text-green-800]="transaction.status === 'Approved'"
+                        [class.bg-yellow-100]="transaction.status === 'Pending'" [class.text-yellow-800]="transaction.status === 'Pending'"
+                        [class.bg-red-100]="transaction.status === 'Rejected'" [class.text-red-800]="transaction.status === 'Rejected'">
+                         <svg class="mr-1.5 h-2 w-2" [class.text-green-400]="transaction.status === 'Approved'" [class.text-yellow-400]="transaction.status === 'Pending'" [class.text-red-400]="transaction.status === 'Rejected'" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" /></svg>
+                        {{ transaction.status }}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      @if(transaction.status === 'Pending') {
+                        <div class="flex items-center justify-end space-x-2">
+                          <button (click)="rejectTransaction(transaction.id, $event)" class="p-1 text-red-500 bg-red-100 rounded-md hover:bg-red-200">
+                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                          </button>
+                          <button (click)="approveTransaction(transaction.id, $event)" class="p-1 text-green-500 bg-green-100 rounded-md hover:bg-green-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                          </button>
+                        </div>
+                      }
+                    </td>
+                  </tr>
+                } @empty {
+                   <tr>
+                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">No transactions found.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+           <!-- Transaction Pagination -->
+          @if (transactionTotalPages() > 1) {
+            <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+                <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-sm text-gray-700">
+                            Showing
+                            <span class="font-medium">{{ (transactionCurrentPage() - 1) * transactionItemsPerPage() + 1 }}</span>
+                            to
+                            <span class="font-medium">{{ ((transactionCurrentPage() - 1) * transactionItemsPerPage()) + displayTransactions().length }}</span>
+                            of
+                            <span class="font-medium">{{ transactions().length }}</span>
+                            results
+                        </p>
+                    </div>
+                    <div>
+                        <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                            <button (click)="setTransactionPage(transactionCurrentPage() - 1)" [disabled]="transactionCurrentPage() === 1" class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50">
+                                <span class="sr-only">Previous</span>
+                                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" /></svg>
+                            </button>
+                            @for(page of [].constructor(transactionTotalPages()); track $index) {
+                                <button (click)="setTransactionPage($index + 1)" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold" [class.bg-blue-600]="transactionCurrentPage() === $index + 1" [class.text-white]="transactionCurrentPage() === $index + 1" [class.text-gray-900]="transactionCurrentPage() !== $index + 1" [class.ring-1]="transactionCurrentPage() !== $index + 1" [class.ring-inset]="transactionCurrentPage() !== $index + 1" [class.ring-gray-300]="transactionCurrentPage() !== $index + 1" [class.hover:bg-gray-50]="transactionCurrentPage() !== $index + 1">
+                                    {{ $index + 1 }}
+                                </button>
+                            }
+                            <button (click)="setTransactionPage(transactionCurrentPage() + 1)" [disabled]="transactionCurrentPage() === transactionTotalPages()" class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50">
+                                <span class="sr-only">Next</span>
+                                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" /></svg>
+                            </button>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+          }
+        </div>
+      }
+    }
+  } @else {
+    <!-- Teacher view -->
+    <div class="bg-white rounded-lg p-6 shadow-sm">
+      <div class="flex flex-col sm:flex-row justify-between items-center mb-4 space-y-2 sm:space-y-0">
+          <h4 class="font-semibold text-gray-800 text-lg">Available Items</h4>
+           <div class="flex items-center space-x-2">
+              <select (change)="onCategoryFilterChange($event)" class="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                  @for (category of itemCategories(); track category) {
+                      <option [value]="category">{{ category === 'all' ? 'All Categories' : category }}</option>
+                  }
+              </select>
+              <input (input)="onSearch($event)" type="text" placeholder="Search items..." class="w-full sm:w-64 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+           </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Name</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            @for(item of displayItems(); track item.id) {
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ item.name }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item.category }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item.quantity }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                  @let status = getItemStatus()(item);
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                    [class.bg-green-100]="status.color === 'green'" [class.text-green-800]="status.color === 'green'"
+                    [class.bg-yellow-100]="status.color === 'yellow'" [class.text-yellow-800]="status.color === 'yellow'"
+                    [class.bg-red-100]="status.color === 'red'" [class.text-red-800]="status.color === 'red'">
+                     <svg class="mr-1.5 h-2 w-2" [class.text-green-400]="status.color === 'green'" [class.text-yellow-400]="status.color === 'yellow'" [class.text-red-400]="status.color === 'red'" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" /></svg>
+                    {{ status.text }}
+                  </span>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="4" class="px-6 py-4 text-center text-gray-500">No items found.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+       <!-- Teacher Inventory Pagination -->
+      @if (inventoryTotalPages() > 1) {
+        <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+            <div class="flex flex-1 justify-between sm:hidden">
+                <button (click)="setInventoryPage(inventoryCurrentPage() - 1)" [disabled]="inventoryCurrentPage() === 1" class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">Previous</button>
+                <button (click)="setInventoryPage(inventoryCurrentPage() + 1)" [disabled]="inventoryCurrentPage() === inventoryTotalPages()" class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">Next</button>
+            </div>
+            <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm text-gray-700">
+                        Showing
+                        <span class="font-medium">{{ (inventoryCurrentPage() - 1) * inventoryItemsPerPage() + 1 }}</span>
+                        to
+                        <span class="font-medium">{{ ((inventoryCurrentPage() - 1) * inventoryItemsPerPage()) + displayItems().length }}</span>
+                        of
+                        <span class="font-medium">{{ items().length }}</span>
+                        results
+                    </p>
+                </div>
+                <div>
+                    <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                        <button (click)="setInventoryPage(inventoryCurrentPage() - 1)" [disabled]="inventoryCurrentPage() === 1" class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50">
+                            <span class="sr-only">Previous</span>
+                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" /></svg>
+                        </button>
+                        @for(page of [].constructor(inventoryTotalPages()); track $index) {
+                            <button (click)="setInventoryPage($index + 1)" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold" [class.bg-blue-600]="inventoryCurrentPage() === $index + 1" [class.text-white]="inventoryCurrentPage() === $index + 1" [class.text-gray-900]="inventoryCurrentPage() !== $index + 1" [class.ring-1]="inventoryCurrentPage() !== $index + 1" [class.ring-inset]="inventoryCurrentPage() !== $index + 1" [class.ring-gray-300]="inventoryCurrentPage() !== $index + 1" [class.hover:bg-gray-50]="inventoryCurrentPage() !== $index + 1">
+                                {{ $index + 1 }}
+                            </button>
+                        }
+                        <button (click)="setInventoryPage(inventoryCurrentPage() + 1)" [disabled]="inventoryCurrentPage() === inventoryTotalPages()" class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50">
+                            <span class="sr-only">Next</span>
+                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" /></svg>
+                        </button>
+                    </nav>
+                </div>
+            </div>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- Add/Edit Item Modal (Admin Only) -->
+@if (isItemModalOpen() && mode() === 'admin') {
+  <div class="fixed inset-0 bg-black bg-opacity-60 z-40 transition-opacity" (click)="closeItemModal()"></div>
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-lg transform transition-all" (click)="$event.stopPropagation()">
+      <form [formGroup]="itemForm" (ngSubmit)="saveItem()">
+        <div class="flex items-center justify-between p-4 border-b">
+          <h3 class="text-xl font-semibold">{{ editingItem() ? 'Edit Item' : 'Add New Item' }}</h3>
+          <button type="button" (click)="closeItemModal()" class="text-gray-400 hover:text-gray-600">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="p-6 space-y-4">
+          <div>
+            <label for="name" class="block text-sm font-medium text-gray-700">Item Name</label>
+            <input id="name" type="text" formControlName="name" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+          </div>
+          <div>
+            <label for="sku" class="block text-sm font-medium text-gray-700">SKU</label>
+            <input id="sku" type="text" formControlName="sku" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+          </div>
+          <div>
+            <label for="category" class="block text-sm font-medium text-gray-700">Category</label>
+            <input id="category" type="text" formControlName="category" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="quantity" class="block text-sm font-medium text-gray-700">Quantity</label>
+              <input id="quantity" type="number" formControlName="quantity" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+            <div>
+              <label for="price" class="block text-sm font-medium text-gray-700">Price</label>
+              <input id="price" type="number" formControlName="price" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+          </div>
+        </div>
+        <div class="px-6 py-3 bg-gray-50 flex justify-end space-x-3">
+          <button type="button" (click)="closeItemModal()" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+          <button type="submit" class="bg-[#0f62fe] text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700">Save Item</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- Create Transaction Modal (Admin Only) -->
+@if (isTransactionModalOpen() && mode() === 'admin') {
+  <div class="fixed inset-0 bg-black bg-opacity-60 z-40" (click)="closeTransactionModal()"></div>
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-xl transform transition-all" (click)="$event.stopPropagation()">
+      <form [formGroup]="transactionForm" (ngSubmit)="saveTransaction()">
+        <div class="flex items-center justify-between p-4 border-b">
+          <h3 class="text-xl font-semibold">Create New Transaction</h3>
+          <button type="button" (click)="closeTransactionModal()" class="text-gray-400 hover:text-gray-600">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div class="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Transaction Type</label>
+            <div class="mt-1 flex rounded-md shadow-sm">
+              <button type="button" (click)="transactionForm.patchValue({ type: 'Import' })"
+                class="relative inline-flex items-center space-x-2 px-4 py-2 border border-gray-300 text-sm font-medium rounded-l-md"
+                [class.bg-blue-600]="transactionForm.value.type === 'Import'" [class.text-white]="transactionForm.value.type === 'Import'"
+                [class.bg-white]="transactionForm.value.type !== 'Import'" [class.text-gray-700]="transactionForm.value.type !== 'Import'">
+                Import
+              </button>
+              <button type="button" (click)="transactionForm.patchValue({ type: 'Export' })"
+                class="-ml-px relative inline-flex items-center space-x-2 px-4 py-2 border border-gray-300 text-sm font-medium rounded-r-md"
+                [class.bg-blue-600]="transactionForm.value.type === 'Export'" [class.text-white]="transactionForm.value.type === 'Export'"
+                [class.bg-white]="transactionForm.value.type !== 'Export'" [class.text-gray-700]="transactionForm.value.type !== 'Export'">
+                Export
+              </button>
+            </div>
+          </div>
+          
+          <div formArrayName="items">
+            <h4 class="text-md font-medium text-gray-800 border-b pb-2 mb-2">Items</h4>
+            @for (item of transactionItems.controls; track $index) {
+              <div [formGroupName]="$index" class="grid grid-cols-12 gap-x-4 items-end mb-3">
+                <div class="col-span-6">
+                  <label class="block text-xs font-medium text-gray-700">Item</label>
+                  <select formControlName="itemId" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <option [ngValue]="null" disabled>Select an item</option>
+                    @for(stockItem of items(); track stockItem.id) {
+                      <option [value]="stockItem.id">{{ stockItem.name }} (Stock: {{stockItem.quantity}})</option>
+                    }
+                  </select>
+                </div>
+                 <div class="col-span-3">
+                  <label class="block text-xs font-medium text-gray-700">Quantity</label>
+                  <input type="number" formControlName="quantity" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm sm:text-sm">
+                </div>
+                 <div class="col-span-3 flex items-center">
+                  <button type="button" (click)="removeTransactionItem($index)" class="text-red-500 hover:text-red-700 p-2 rounded-md disabled:opacity-50" [disabled]="transactionItems.length <= 1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z" clip-rule="evenodd" /></svg>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+          <button type="button" (click)="addTransactionItem()" class="text-sm text-blue-600 font-medium hover:text-blue-800 flex items-center space-x-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" /></svg>
+            <span>Add Another Item</span>
+          </button>
+        </div>
+        <div class="px-6 py-3 bg-gray-50 flex justify-end space-x-3">
+          <button type="button" (click)="closeTransactionModal()" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+          <button type="submit" class="bg-[#0f62fe] text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 disabled:bg-gray-400" [disabled]="transactionForm.invalid">Submit for Approval</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

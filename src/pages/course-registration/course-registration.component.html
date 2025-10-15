@@ -1,0 +1,76 @@
+<div class="space-y-8">
+  <!-- Header -->
+  <div>
+    <h3 class="text-3xl font-bold text-gray-800">Course Registration</h3>
+    <p class="text-gray-500 mt-1">Browse and select your courses for the upcoming semester.</p>
+  </div>
+
+  <!-- Registration Summary & Action -->
+  <div class="bg-white rounded-lg shadow-sm p-4 sticky top-16 z-10">
+    <div class="flex flex-col sm:flex-row justify-between items-center">
+      <div class="text-gray-700">
+        You have selected <span class="font-bold text-blue-600">{{ selectedCourseIds().size }}</span> course(s).
+      </div>
+      <button 
+        (click)="confirmRegistration()"
+        [disabled]="selectedCourseIds().size === 0"
+        class="w-full sm:w-auto mt-3 sm:mt-0 bg-[#0f62fe] text-white font-bold py-2 px-6 rounded-lg shadow-md hover:bg-blue-700 transition duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed">
+        Confirm Registration
+      </button>
+    </div>
+  </div>
+
+  <!-- Course Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+    @for (course of allCourses(); track course.id) {
+      <div class="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col border-t-4" [class]="getDepartmentColor(course.department)">
+        <div class="p-5 flex flex-col flex-grow">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-sm font-semibold text-gray-500">{{ course.code }} - {{ course.department }}</p>
+              <h4 class="text-lg font-bold text-gray-800">{{ course.name }}</h4>
+            </div>
+            <span class="text-sm font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded">{{ course.credits }} Credits</span>
+          </div>
+          
+          <p class="text-sm text-gray-600 mt-2">
+            <span class="font-medium">Instructor:</span> {{ course.instructor }}
+          </p>
+
+          <div class="mt-4 flex-grow">
+            <div class="flex justify-between text-xs text-gray-500 mb-1">
+              <span>Enrollment</span>
+              <span>{{ course.enrolled }} / {{ course.capacity }}</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2.5">
+              <div class="bg-blue-600 h-2.5 rounded-full" [style.width]="(course.enrolled / course.capacity) * 100 + '%'"></div>
+            </div>
+          </div>
+          
+          <div class="mt-5">
+            @if (isEnrolled(course.id)) {
+              <button disabled class="w-full flex items-center justify-center bg-green-100 text-green-800 font-semibold py-2 px-4 rounded-lg cursor-default">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                Registered
+              </button>
+            } @else if (isFull(course)) {
+              <button disabled class="w-full bg-gray-200 text-gray-500 font-semibold py-2 px-4 rounded-lg cursor-not-allowed">
+                Course Full
+              </button>
+            } @else if (isSelected(course.id)) {
+               <button (click)="toggleSelection(course)" class="w-full bg-red-100 text-red-700 font-semibold py-2 px-4 rounded-lg hover:bg-red-200 transition duration-300">
+                Remove Selection
+              </button>
+            } @else {
+              <button (click)="toggleSelection(course)" class="w-full bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-300 rounded-lg shadow-sm transition duration-300">
+                Select for Registration
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</div>

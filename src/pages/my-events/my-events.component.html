@@ -1,0 +1,102 @@
+<div class="space-y-8">
+  <!-- Header -->
+  <div>
+    <h3 class="text-3xl font-bold text-gray-800">Events & Activities</h3>
+    <p class="text-gray-500 mt-1">Discover and join upcoming events at the institution.</p>
+  </div>
+
+  <!-- Filters -->
+  <div class="flex space-x-2 border-b border-gray-200 pb-2">
+    <button (click)="setFilter('all')" class="px-4 py-2 text-sm font-medium rounded-md transition-colors"
+      [class.text-blue-600]="filter() === 'all'"
+      [class.border-blue-600]="filter() === 'all'"
+      [class.border-transparent]="filter() !== 'all'"
+      [class.text-gray-600]="filter() !== 'all'"
+      [class.hover:text-blue-600]="filter() !== 'all'"
+      [class.border-b-2]="true">
+      All Events
+    </button>
+    <button (click)="setFilter('registered')" class="px-4 py-2 text-sm font-medium rounded-md transition-colors"
+      [class.text-blue-600]="filter() === 'registered'"
+      [class.border-blue-600]="filter() === 'registered'"
+      [class.border-transparent]="filter() !== 'registered'"
+      [class.text-gray-600]="filter() !== 'registered'"
+      [class.hover:text-blue-600]="filter() !== 'registered'"
+      [class.border-b-2]="true">
+      My Registrations
+    </button>
+  </div>
+
+  <!-- Events Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+    @for(event of filteredEvents(); track event.id) {
+      <div class="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col transform hover:-translate-y-1 transition-transform duration-300">
+        <div class="relative h-48 w-full">
+          <img [ngSrc]="event.imageUrl" [alt]="event.name" class="object-cover" fill>
+        </div>
+        
+        <div class="p-6 flex flex-col flex-grow">
+          @let categoryStyle = getCategoryStyles(event.category);
+          <div class="flex items-center justify-between mb-2">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+              [class.bg-blue-100]="categoryStyle.color === 'blue'" [class.text-blue-800]="categoryStyle.color === 'blue'"
+              [class.bg-indigo-100]="categoryStyle.color === 'indigo'" [class.text-indigo-800]="categoryStyle.color === 'indigo'"
+              [class.bg-rose-100]="categoryStyle.color === 'rose'" [class.text-rose-800]="categoryStyle.color === 'rose'"
+              [class.bg-amber-100]="categoryStyle.color === 'amber'" [class.text-amber-800]="categoryStyle.color === 'amber'"
+            >
+              {{ event.category }}
+            </span>
+            <div class="flex items-center text-sm text-gray-500">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              {{ event.date | date:'mediumDate' }}
+            </div>
+          </div>
+          
+          <h4 class="text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors">{{ event.name }}</h4>
+          <p class="text-sm text-gray-600 mt-1">{{ event.location }}</p>
+          <p class="text-sm text-gray-500 mt-3 flex-grow">{{ event.description }}</p>
+
+          <div class="mt-4">
+            <div class="flex justify-between text-xs text-gray-500 mb-1">
+              <span>{{ event.registered }} / {{ event.capacity }} spots filled</span>
+              <span>{{ ((event.registered / event.capacity) * 100) | number:'1.0-0' }}%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <div class="bg-blue-600 h-2 rounded-full" [style.width]="(event.registered / event.capacity) * 100 + '%'"></div>
+            </div>
+          </div>
+
+          <div class="mt-6">
+            @if (event.isRegistered) {
+              <button (click)="toggleRegistration(event.id)" class="w-full bg-red-100 text-red-700 font-semibold py-2 px-4 rounded-lg hover:bg-red-200 transition duration-300">
+                Cancel Registration
+              </button>
+            } @else {
+              @if (event.registered < event.capacity) {
+                <button (click)="toggleRegistration(event.id)" class="w-full bg-[#0f62fe] hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300">
+                  Register Now
+                </button>
+              } @else {
+                <button disabled class="w-full bg-gray-300 text-gray-500 font-semibold py-2 px-4 rounded-lg cursor-not-allowed">
+                  Event Full
+                </button>
+              }
+            }
+          </div>
+        </div>
+      </div>
+    } @empty {
+      <div class="col-span-full text-center py-16">
+        <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+        <h3 class="mt-2 text-sm font-medium text-gray-900">No events found</h3>
+        <p class="mt-1 text-sm text-gray-500">
+          @if(filter() === 'registered') {
+            You haven't registered for any events yet.
+          } @else {
+            There are no events to display right now. Please check back later.
+          }
+        </p>
+      </div>
+    }
+  </div>
+</div>

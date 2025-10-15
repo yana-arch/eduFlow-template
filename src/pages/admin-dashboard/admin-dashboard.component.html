@@ -1,0 +1,145 @@
+<div>
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+    <div>
+      <h3 class="text-3xl font-bold text-gray-800">Admin Dashboard</h3>
+      <p class="text-gray-500 mt-1">Overview of the entire institution's activities.</p>
+    </div>
+    <div class="flex space-x-2 mt-4 sm:mt-0">
+      <button class="bg-[#0f62fe] text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 transition duration-300 flex items-center space-x-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <span>Approve Budgets</span>
+      </button>
+      <button class="bg-white text-gray-700 font-bold py-2 px-4 rounded-lg shadow-md hover:bg-gray-200 border border-gray-300 transition duration-300 flex items-center space-x-2">
+         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+        <span>Create Event</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+    @for(stat of stats(); track stat.title) {
+      <div class="bg-white rounded-lg p-6 shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-500 uppercase">{{ stat.title }}</p>
+            <p class="text-3xl font-bold text-gray-800">{{ stat.value }}</p>
+          </div>
+          <div class="rounded-full p-3" 
+            [class.bg-blue-100]="stat.color === 'blue'" [class.text-blue-600]="stat.color === 'blue'"
+            [class.bg-green-100]="stat.color === 'green'" [class.text-green-600]="stat.color === 'green'"
+            [class.bg-yellow-100]="stat.color === 'yellow'" [class.text-yellow-600]="stat.color === 'yellow'"
+            [class.bg-indigo-100]="stat.color === 'indigo'" [class.text-indigo-600]="stat.color === 'indigo'">
+             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" [innerHTML]="getStatIcon(stat.icon)"></svg>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Charts -->
+  <div class="mt-8 grid grid-cols-1 lg:grid-cols-5 gap-6">
+    <div class="lg:col-span-3 bg-white rounded-lg p-6 shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+      <h4 class="font-semibold text-gray-800 text-lg">Revenue Trends (Last 12 Months)</h4>
+      <div class="mt-4 h-80 rounded-md p-4 relative">
+        <svg class="w-full h-full" viewBox="0 0 500 200" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stop-color="#0f62fe" stop-opacity="0.4"/>
+              <stop offset="95%" stop-color="#0f62fe" stop-opacity="0"/>
+            </linearGradient>
+            <filter id="tooltip-shadow" x="-50%" y="-50%" width="200%" height="200%">
+              <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.2"/>
+            </filter>
+          </defs>
+          
+          @for (line of gridLines(); track $index) {
+            <line x1="0" [attr.y1]="line.y" x2="500" [attr.y2]="line.y" stroke="#e5e7eb" stroke-width="0.5" />
+          }
+
+          <path [attr.d]="revenueAreaPath()" fill="url(#revenueGradient)" />
+          <path [attr.d]="revenueLinePath()" fill="none" stroke="#0f62fe" stroke-width="2" />
+
+          @for (point of revenuePoints(); track $index) {
+            <g class="group">
+              <circle [attr.cx]="point.x" [attr.cy]="point.y" r="4" fill="#0f62fe" class="cursor-pointer" />
+              <circle [attr.cx]="point.x" [attr.cy]="point.y" r="8" fill="#0f62fe" class="opacity-0 group-hover:opacity-20 transition-opacity" />
+              <g [attr.transform]="'translate(' + (point.x - 20) + ', ' + (point.y - 45) + ')'" class="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                <rect width="40" height="25" rx="4" fill="#1f2937" filter="url(#tooltip-shadow)"/>
+                <path d="M 17 25 L 20 29 L 23 25 Z" fill="#1f2937" />
+                <text x="20" y="16" font-size="10" font-weight="bold" fill="white" text-anchor="middle">${{ point.value }}k</text>
+              </g>
+            </g>
+          }
+        </svg>
+        <div class="flex justify-between text-xs text-gray-500 mt-2 px-2">
+          @for (month of chartMonths; track month) {
+            <span>{{ month }}</span>
+          }
+        </div>
+      </div>
+    </div>
+    <div class="lg:col-span-2 bg-white rounded-lg p-6 shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+      <h4 class="font-semibold text-gray-800 text-lg">Monthly Attendance Rate (%)</h4>
+      <div class="mt-4 h-80 rounded-md flex items-end justify-around p-4 space-x-2">
+        @for (rate of attendanceData(); track $index) {
+          <div class="w-full flex-1 flex flex-col items-center justify-end group relative">
+            <div class="absolute -top-6 opacity-0 group-hover:opacity-100 bg-gray-800 text-white text-xs rounded py-1 px-2 z-10 transition-opacity">
+              {{ rate }}%
+            </div>
+            <div class="w-full bg-blue-200 group-hover:bg-blue-500 transition-colors rounded-t-md" [style.height]="rate + '%'"></div>
+            <span class="text-xs text-gray-500 mt-1">{{ ['J','F','M','A','M','J','J','A','S','O','N','D'][$index] }}</span>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Activity Table -->
+  <div class="mt-8 bg-white rounded-lg p-6 shadow-sm">
+    <h4 class="font-semibold text-gray-800 text-lg">Recent Activity</h4>
+    <div class="mt-4 overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User & Action</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          @for(activity of recentActivity(); track activity.action) {
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap text-sm">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0 h-10 w-10 flex items-center justify-center bg-gray-100 rounded-full">
+                    <svg class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="getIconPath(activity.icon)"/>
+                    </svg>
+                  </div>
+                  <div class="ml-4">
+                    <div class="font-medium text-gray-900">{{ activity.action }}</div>
+                    <div class="text-gray-500">{{ activity.user }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ activity.details }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ activity.timestamp }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
+                  [class.bg-green-100]="activity.statusColor === 'green'" [class.text-green-800]="activity.statusColor === 'green'"
+                  [class.bg-yellow-100]="activity.statusColor === 'yellow'" [class.text-yellow-800]="activity.statusColor === 'yellow'"
+                  [class.bg-blue-100]="activity.statusColor === 'blue'" [class.text-blue-800]="activity.statusColor === 'blue'"
+                  [class.bg-gray-100]="activity.statusColor === 'gray'" [class.text-gray-800]="activity.statusColor === 'gray'"
+                >
+                  {{ activity.status }}
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,110 @@
+<div class="space-y-8">
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+    <div>
+      <h3 class="text-3xl font-bold text-gray-800">My Teaching Schedule</h3>
+      <p class="text-gray-500 mt-1">Your weekly teaching commitments and class schedule.</p>
+    </div>
+    <div class="flex space-x-1 bg-gray-200 p-1 rounded-lg mt-4 sm:mt-0">
+      <button (click)="setViewMode('grid')"
+        class="px-4 py-2 text-sm font-medium rounded-md transition-colors"
+        [class.bg-white]="viewMode() === 'grid'"
+        [class.text-gray-800]="viewMode() === 'grid'"
+        [class.text-gray-500]="viewMode() !== 'grid'">
+        Week View
+      </button>
+      <button (click)="setViewMode('list')"
+        class="px-4 py-2 text-sm font-medium rounded-md transition-colors"
+        [class.bg-white]="viewMode() === 'list'"
+        [class.text-gray-800]="viewMode() === 'list'"
+        [class.text-gray-500]="viewMode() !== 'list'">
+        List View
+      </button>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-lg shadow-sm p-6">
+    @switch (viewMode()) {
+      @case ('grid') {
+        <div class="grid grid-cols-[auto,1fr,1fr,1fr,1fr,1fr] gap-x-4 relative" style="grid-template-rows: auto;">
+          <!-- Time Column -->
+          <div class="row-start-1 col-start-1"></div>
+          
+          <!-- Day Headers -->
+          @for (day of daysOfWeek; track day) {
+            <div class="text-center font-semibold text-gray-700 py-2 border-b-2 border-gray-200">{{ day }}</div>
+          }
+
+          <!-- Grid Body -->
+          <div class="col-start-1 col-span-full row-start-1 relative">
+             <div class="grid grid-cols-[auto,1fr,1fr,1fr,1fr,1fr] w-full">
+                <!-- Time Slots -->
+                <div class="col-start-1 relative top-[2.625rem]">
+                  @for (time of timeSlots; track time) {
+                    <div class="h-[60px] text-right pr-4 text-xs text-gray-400 border-t border-gray-100 -mt-px">{{ time }}</div>
+                  }
+                </div>
+                <!-- Day Columns for events -->
+                @for (day of daysOfWeek; track day) {
+                    <div class="col-start-{{ $index + 2 }} relative border-l border-gray-100 top-[2.625rem]">
+                        @for (time of timeSlots; track time) {
+                          <div class="h-[60px] border-t border-gray-100 -mt-px"></div>
+                        }
+                    </div>
+                }
+             </div>
+
+             <!-- Schedule Items -->
+             <div class="absolute inset-0 top-[2.625rem] grid grid-cols-[auto,1fr,1fr,1fr,1fr,1fr] gap-x-4">
+               @for (item of scheduleItems(); track item.id) {
+                <div 
+                  class="absolute w-full p-2 rounded-lg text-white text-xs overflow-hidden mx-1"
+                  [style]="calculateGridPosition(item)"
+                  [class.bg-blue-500]="item.color === 'blue'"
+                  [class.bg-indigo-500]="item.color === 'indigo'"
+                  [class.bg-purple-500]="item.color === 'purple'"
+                  [class.bg-amber-500]="item.color === 'amber'"
+                  [class.bg-rose-500]="item.color === 'rose'"
+                >
+                  <p class="font-bold">{{ item.courseName }}</p>
+                  <p>{{ item.startTime }} - {{ item.endTime }}</p>
+                  <p class="opacity-80">{{ item.room }}</p>
+                </div>
+               }
+             </div>
+          </div>
+        </div>
+      }
+      @case ('list') {
+        <div class="space-y-4">
+          @for (item of scheduleItems(); track item.id) {
+            <div class="flex items-start space-x-4 p-4 rounded-lg"
+              [class.bg-blue-50]="item.color === 'blue'"
+              [class.bg-indigo-50]="item.color === 'indigo'"
+              [class.bg-purple-50]="item.color === 'purple'"
+              [class.bg-amber-50]="item.color === 'amber'"
+              [class.bg-rose-50]="item.color === 'rose'"
+            >
+              <div class="text-center w-24 flex-shrink-0">
+                <p class="font-semibold text-lg"
+                  [class.text-blue-800]="item.color === 'blue'"
+                  [class.text-indigo-800]="item.color === 'indigo'"
+                  [class.text-purple-800]="item.color === 'purple'"
+                  [class.text-amber-800]="item.color === 'amber'"
+                  [class.text-rose-800]="item.color === 'rose'">
+                  {{ item.startTime }}
+                </p>
+                <p class="text-sm text-gray-500">{{ item.day }}</p>
+              </div>
+              <div class="flex-1">
+                <p class="font-bold text-gray-900">{{ item.courseName }}</p>
+                <p class="text-sm text-gray-600">Room: {{ item.room }}</p>
+              </div>
+            </div>
+          } @empty {
+            <p class="text-center text-gray-500 py-8">Your schedule is empty.</p>
+          }
+        </div>
+      }
+    }
+  </div>
+</div>
